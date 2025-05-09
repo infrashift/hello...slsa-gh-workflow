@@ -77,32 +77,34 @@ jobs:
       #    push-to-registry: false
       #    github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup ORAS CLI
-        uses: oras-project/setup-oras@v1 # Pin to a specific version/SHA
-
-      - name: Login to GHCR with ORAS
+      - name: Sanitize Image Digest for Tagging
+        id: sanitize_digest
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io --username "${{ github.actor }}" --password-stdin
+          echo "sanitized_digest=$(echo "${{ inputs.image_digest }}" | tr ':' '-')" >> $GITHUB_OUTPUT
 
       - name: Publish CycloneDX SBOM as OCI Artifact
         id: oras_push_cyclonedx
         run: |
-          oras push ghcr.io/${{ inputs.image_name_no_tag }}:${{ inputs.image_digest }}.sbom.cdx.json \
-            ./downloaded-artifacts/${{ inputs.sbom_cyclonedx_path }}:application/vnd.cyclonedx+json
-          # Capture digest if needed for further attestation of this OCI artifact
-          # echo "digest=$(oras manifest fetch --descriptor ghcr.io/${{ inputs.image_name_no_tag }}:${{ inputs.image_digest }}.sbom.cdx.json | jq -r .digest)" >> $GITHUB_OUTPUT
+          OCI_ARTIFACT_TAG="${{ steps.sanitize_digest.outputs.sanitized_digest }}.sbom.cdx.json"
+          echo "Publishing CycloneDX SBOM to ghcr.io/${{ inputs.image_name_no_tag }}:$OCI_ARTIFACT_TAG"
+          oras push "ghcr.io/${{ inputs.image_name_no_tag }}:$OCI_ARTIFACT_TAG" \
+            "./downloaded-artifacts/${{ inputs.sbom_cyclonedx_path }}:application/vnd.cyclonedx+json"
 
       - name: Publish SPDX SBOM as OCI Artifact
         id: oras_push_spdx
         run: |
-          oras push ghcr.io/${{ inputs.image_name_no_tag }}:${{ inputs.image_digest }}.sbom.spdx.json \
-            ./downloaded-artifacts/${{ inputs.sbom_spdx_path }}:application/spdx+json
+          OCI_ARTIFACT_TAG="${{ steps.sanitize_digest.outputs.sanitized_digest }}.sbom.spdx.json"
+          echo "Publishing SPDX SBOM to ghcr.io/${{ inputs.image_name_no_tag }}:$OCI_ARTIFACT_TAG"
+          oras push "ghcr.io/${{ inputs.image_name_no_tag }}:$OCI_ARTIFACT_TAG" \
+            "./downloaded-artifacts/${{ inputs.sbom_spdx_path }}:application/spdx+json"
 
       - name: Publish Syft JSON SBOM as OCI Artifact
         id: oras_push_syft
         run: |
-          oras push ghcr.io/${{ inputs.image_name_no_tag }}:${{ inputs.image_digest }}.sbom.syft.json \
-            ./downloaded-artifacts/${{ inputs.sbom_syft_json_path }}:application/vnd.syft+json
+          OCI_ARTIFACT_TAG="${{ steps.sanitize_digest.outputs.sanitized_digest }}.sbom.syft.json"
+          echo "Publishing Syft JSON SBOM to ghcr.io/${{ inputs.image_name_no_tag }}:$OCI_ARTIFACT_TAG"
+          oras push "ghcr.io/${{ inputs.image_name_no_tag }}:$OCI_ARTIFACT_TAG" \
+            "./downloaded-artifacts/${{ inputs.sbom_syft_json_path }}:application/vnd.syft+json"
 
       - name: Echo Attestation Details
         run: |
