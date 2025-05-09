@@ -77,6 +77,33 @@ jobs:
       #    push-to-registry: false
       #    github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup ORAS CLI
+        uses: oras-project/setup-oras@v1 # Pin to a specific version/SHA
+
+      - name: Login to GHCR with ORAS
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Publish CycloneDX SBOM as OCI Artifact
+        id: oras_push_cyclonedx
+        run: |
+          oras push ghcr.io/${{ inputs.image_name_no_tag }}:${{ inputs.image_digest }}.sbom.cdx.json \
+            ./downloaded-artifacts/${{ inputs.sbom_cyclonedx_path }}:application/vnd.cyclonedx+json
+          # Capture digest if needed for further attestation of this OCI artifact
+          # echo "digest=$(oras manifest fetch --descriptor ghcr.io/${{ inputs.image_name_no_tag }}:${{ inputs.image_digest }}.sbom.cdx.json | jq -r .digest)" >> $GITHUB_OUTPUT
+
+      - name: Publish SPDX SBOM as OCI Artifact
+        id: oras_push_spdx
+        run: |
+          oras push ghcr.io/${{ inputs.image_name_no_tag }}:${{ inputs.image_digest }}.sbom.spdx.json \
+            ./downloaded-artifacts/${{ inputs.sbom_spdx_path }}:application/spdx+json
+
+      - name: Publish Syft JSON SBOM as OCI Artifact
+        id: oras_push_syft
+        run: |
+          oras push ghcr.io/${{ inputs.image_name_no_tag }}:${{ inputs.image_digest }}.sbom.syft.json \
+            ./downloaded-artifacts/${{ inputs.sbom_syft_json_path }}:application/vnd.syft+json
+
       - name: Echo Attestation Details
         run: |
           echo "OCI Image Attestation ID: ${{ steps.attest_image.outputs.attestation-id }}"
