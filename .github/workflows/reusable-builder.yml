@@ -104,7 +104,7 @@ jobs:
         continue-on-error: true
 
       - name: Install Anchore Grype
-        uses: anchore/scan-action/download-grype@v3.1.1 # Pin to a specific version
+        uses: anchore/scan-action/download-grype@v3 # Pin to a specific version
 
       - name: Scan for CVEs with Grype
         run: |
