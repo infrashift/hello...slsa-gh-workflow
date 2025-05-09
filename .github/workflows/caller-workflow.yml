@@ -11,6 +11,9 @@ permissions: # Minimal permissions for the caller
 jobs:
   build_and_scan:
     uses: ./.github/workflows/reusable-builder.yml
+    permissions: # Add this block
+      contents: read  # The reusable-builder.yml checks out code
+      packages: write # Crucial for allowing the reusable workflow to push images
     with:
       image_name: ${{ github.repository_owner }}/hello-world-secure # Replace with your desired image name
       image_tag: latest # Or use git sha, etc.
@@ -21,6 +24,12 @@ jobs:
   attest_and_publish:
     needs: build_and_scan
     uses: ./.github/workflows/reusable-attestor.yml
+    permissions: # Add this block
+      actions: read       # Needed by reusable-attestor.yml to download artifacts
+      contents: read      # General read access
+      id-token: write     # Needed by reusable-attestor.yml for Sigstore OIDC signing
+      attestations: write # Needed by reusable-attestor.yml to write attestations
+      packages: write     # Needed by reusable-attestor.yml to push OCI attestations/SBOMs/CVEs
     with:
       image_name_with_tag: ${{ needs.build_and_scan.outputs.image_name_with_tag }}
       image_digest: ${{ needs.build_and_scan.outputs.image_digest }}
