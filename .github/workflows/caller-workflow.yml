@@ -1,0 +1,32 @@
+name: Secure OCI Image Supply Chain
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: # Minimal permissions for the caller
+  contents: read
+
+jobs:
+  build_and_scan:
+    uses: ./.github/workflows/reusable-builder.yml
+    with:
+      image_name: ${{ github.repository_owner }}/hello-world-secure # Replace with your desired image name
+      image_tag: latest # Or use git sha, etc.
+      dockerfile: Containerfile # Assuming Dockerfile is in the root
+      build_context: .
+    secrets: inherit # Pass GITHUB_TOKEN for GHCR login in builder
+
+  attest_and_publish:
+    needs: build_and_scan
+    uses: ./.github/workflows/reusable-attestor.yml
+    with:
+      image_name_with_tag: ${{ needs.build_and_scan.outputs.image_name_with_tag }}
+      image_digest: ${{ needs.build_and_scan.outputs.image_digest }}
+      sbom_cyclonedx_path: ${{ needs.build_and_scan.outputs.sbom_cyclonedx_path }}
+      sbom_spdx_path: ${{ needs.build_and_scan.outputs.sbom_spdx_path }}
+      sbom_syft_json_path: ${{ needs.build_and_scan.outputs.sbom_syft_json_path }}
+      cve_report_path: ${{ needs.build_and_scan.outputs.cve_report_path }}
+      image_name_no_tag: ${{ needs.build_and_scan.outputs.image_name_no_tag }} # For ORAS publishing
+    secrets: inherit # Pass GITHUB_TOKEN for attestations and GHCR package write
