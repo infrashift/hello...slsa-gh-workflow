@@ -44,17 +44,10 @@ jobs:
 
       - name: Attest OCI Image Build Provenance
         id: attest_image
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v2
         with:
           subject-digest: ${{ inputs.image_digest }}
           subject-name: ${{ inputs.image_name_with_tag }} # Added: Provide the image name
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attest CycloneDX SBOM for Image
         uses: actions/attest-sbom@v1
@@ -63,6 +56,7 @@ jobs:
           subject-digest: ${{ inputs.image_digest }}  
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_cyclonedx_path }}
           push-to-registry: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attest SPDX SBOM for Image
         uses: actions/attest-sbom@v1
@@ -71,6 +65,7 @@ jobs:
           subject-digest: ${{ inputs.image_digest }}  
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_spdx_path }}
           push-to-registry: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attest Syft JSON SBOM for Image
         uses: actions/attest-sbom@v1
@@ -79,6 +74,7 @@ jobs:
           subject-digest: ${{ inputs.image_digest }}  
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_syft_json_path }}
           push-to-registry: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Echo Attestation Details
         run: |
