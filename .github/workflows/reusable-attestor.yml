@@ -55,7 +55,7 @@ jobs:
           subject-name: ${{ inputs.image_name_no_tag}}  # Do NOT include a tag as part of the image name -- the supplied digest subject-digest identifies the specific image being attested.
           subject-digest: ${{ inputs.image_digest }}  
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_cyclonedx_path }}
-          push-to-registry: true
+          push-to-registry: false
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attest SPDX SBOM for Image
@@ -64,7 +64,7 @@ jobs:
           subject-name: ${{ inputs.image_name_no_tag}} # Do NOT include a tag as part of the image name -- the supplied digest subject-digest identifies the specific image being attested.
           subject-digest: ${{ inputs.image_digest }}  
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_spdx_path }}
-          push-to-registry: true
+          push-to-registry: false
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attest Syft JSON SBOM for Image
@@ -73,11 +73,15 @@ jobs:
           subject-name: ${{ inputs.image_name_no_tag}} # Do NOT include a tag as part of the image name -- the supplied digest subject-digest identifies the specific image being attested.
           subject-digest: ${{ inputs.image_digest }}  
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_syft_json_path }}
-          push-to-registry: true
+          push-to-registry: false
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Echo Attestation Details
         run: |
           echo "OCI Image Attestation ID: ${{ steps.attest_image.outputs.attestation-id }}"
           echo "Find attestations at: https://github.com/${{ github.repository }}/attestations"
+
+      - name: Fetch artifact index
+        run: |
+          oras discover --format json ${{ inputs.image_name_no_tag}}@${{ inputs.image_digest }} | jq
 
