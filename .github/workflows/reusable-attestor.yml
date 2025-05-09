@@ -26,11 +26,11 @@ on:
         type: string
 
 permissions:
-  actions: read # To download artifacts
+  actions: read
   contents: read
-  id-token: write   # Required for Sigstore OIDC token
-  attestations: write # Required to write attestations to GitHub
-  packages: write   # Required to push OCI artifacts (SBOMs, CVEs, attestations) to GHCR
+  id-token: write
+  attestations: write
+  packages: write
 
 jobs:
   attest_and_publish_artifacts:
@@ -44,34 +44,37 @@ jobs:
 
       - name: Attest OCI Image Build Provenance
         id: attest_image
-        uses: actions/attest-build-provenance@v1 # Pin to a specific version/SHA for production
+        uses: actions/attest-build-provenance@v1
         with:
           subject-digest: ${{ inputs.image_digest }}
-          # subject-name: ${{ inputs.image_name_with_tag }} # Not strictly needed if digest is primary identifier
+          subject-name: ${{ inputs.image_name_with_tag }} # Added: Provide the image name
 
       - name: Attest CycloneDX SBOM for Image
-        uses: actions/attest-sbom@v1 # Pin to a specific version/SHA
+        uses: actions/attest-sbom@v1
         with:
-          subject-path: ${{ inputs.image_name_with_tag }} # Can also use subject-digest with inputs.image_digest
+          subject-name: ${{ inputs.image_name_with_tag }}   # Added: Fully qualified image name
+          subject-digest: ${{ inputs.image_digest }}        # Added: Image digest
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_cyclonedx_path }}
-          push-to-registry: true # Pushes attestation linked to the image in GHCR
+          push-to-registry: true
 
       - name: Attest SPDX SBOM for Image
         uses: actions/attest-sbom@v1
         with:
-          subject-path: ${{ inputs.image_name_with_tag }}
+          subject-name: ${{ inputs.image_name_with_tag }}   # Added: Fully qualified image name
+          subject-digest: ${{ inputs.image_digest }}        # Added: Image digest
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_spdx_path }}
           push-to-registry: true
 
       - name: Attest Syft JSON SBOM for Image
         uses: actions/attest-sbom@v1
         with:
-          subject-path: ${{ inputs.image_name_with_tag }}
+          subject-name: ${{ inputs.image_name_with_tag }}   # Added: Fully qualified image name
+          subject-digest: ${{ inputs.image_digest }}        # Added: Image digest
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_syft_json_path }}
           push-to-registry: true
 
       - name: Setup ORAS CLI
-        uses: oras-project/setup-oras@v1 # Pin to a specific version/SHA
+        uses: oras-project/setup-oras@v1
 
       - name: Login to GHCR with ORAS
         run: |
@@ -82,8 +85,6 @@ jobs:
         run: |
           oras push ghcr.io/${{ inputs.image_name_no_tag }}:${{ inputs.image_digest }}.sbom.cdx.json \
             ./downloaded-artifacts/${{ inputs.sbom_cyclonedx_path }}:application/vnd.cyclonedx+json
-          # Capture digest if needed for further attestation of this OCI artifact
-          # echo "digest=$(oras manifest fetch --descriptor ghcr.io/${{ inputs.image_name_no_tag }}:${{ inputs.image_digest }}.sbom.cdx.json | jq -r .digest)" >> $GITHUB_OUTPUT
 
       - name: Publish SPDX SBOM as OCI Artifact
         id: oras_push_spdx
@@ -103,17 +104,15 @@ jobs:
           CVE_OCI_TAG="${{ inputs.image_digest }}.cve.json"
           oras push ghcr.io/${{ inputs.image_name_no_tag }}:$CVE_OCI_TAG \
             ./downloaded-artifacts/${{ inputs.cve_report_path }}:application/json
-          # Get the digest of the pushed CVE OCI artifact
           CVE_OCI_DIGEST=$(oras manifest fetch --descriptor ghcr.io/${{ inputs.image_name_no_tag }}:$CVE_OCI_TAG | jq -r .digest)
           echo "cve_oci_digest=$CVE_OCI_DIGEST" >> $GITHUB_OUTPUT
           echo "cve_oci_ref=ghcr.io/${{ inputs.image_name_no_tag }}@$CVE_OCI_DIGEST" >> $GITHUB_OUTPUT
-
 
       - name: Attest CVE Report OCI Artifact Build Provenance
         uses: actions/attest-build-provenance@v1
         with:
           subject-digest: ${{ steps.oras_push_cve.outputs.cve_oci_digest }}
-          # subject-name: ${{ steps.oras_push_cve.outputs.cve_oci_ref }} # Optional: provides human-readable name
+          subject-name: ${{ steps.oras_push_cve.outputs.cve_oci_ref }} # Added: Provide the OCI artifact name with digest
 
       - name: Echo Attestation Details
         run: |
