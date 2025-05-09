@@ -14,7 +14,7 @@ jobs:
     with:
       image_name: ${{ github.repository_owner }}/hello-world-secure # Replace with your desired image name
       image_tag: latest # Or use git sha, etc.
-      dockerfile: Dockerfile # Assuming Dockerfile is in the root
+      dockerfile: Containerfile # Assuming Dockerfile is in the root
       build_context: .
     secrets: inherit # Pass GITHUB_TOKEN for GHCR login in builder
 
