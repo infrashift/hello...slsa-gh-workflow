@@ -77,6 +77,13 @@ jobs:
       #    push-to-registry: false
       #    github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup ORAS CLI
+        uses: oras-project/setup-oras@v1
+
+      - name: Login to GHCR with ORAS
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io --username "${{ github.actor }}" --password-stdin
+      
       - name: Sanitize Image Digest for Tagging
         id: sanitize_digest
         run: |
