@@ -52,7 +52,7 @@ jobs:
       - name: Attest CycloneDX SBOM for Image
         uses: actions/attest-sbom@v1
         with:
-          subject-name: ${{ inputs.image_name_no_tag}}:{{inputs.image_digest}}   # Added: Fully qualified image name
+          subject-name: ${{ inputs.image_name_no_tag}}@{{inputs.image_digest}}   # Added: Fully qualified image name
           subject-digest: ${{ inputs.image_digest }}        # Added: Image digest
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_cyclonedx_path }}
           push-to-registry: true
@@ -60,7 +60,7 @@ jobs:
       - name: Attest SPDX SBOM for Image
         uses: actions/attest-sbom@v1
         with:
-          subject-name: ${{ inputs.image_name_no_tag}}:{{inputs.image_digest}}   # Added: Fully qualified image name
+          subject-name: ${{ inputs.image_name_no_tag}}@{{inputs.image_digest}}   # Added: Fully qualified image name
           subject-digest: ${{ inputs.image_digest }}        # Added: Image digest
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_spdx_path }}
           push-to-registry: true
@@ -68,7 +68,7 @@ jobs:
       - name: Attest Syft JSON SBOM for Image
         uses: actions/attest-sbom@v1
         with:
-          subject-name: ${{ inputs.image_name_no_tag}}:{{inputs.image_digest}}   # Added: Fully qualified image name
+          subject-name: ${{ inputs.image_name_no_tag}}@{{inputs.image_digest}}   # Added: Fully qualified image name
           subject-digest: ${{ inputs.image_digest }}        # Added: Image digest
           sbom-path: ./downloaded-artifacts/${{ inputs.sbom_syft_json_path }}
           push-to-registry: true
