@@ -88,7 +88,7 @@ jobs:
         id: sanitize_digest
         run: |
           echo "sanitized_digest=$(echo "${{ inputs.image_digest }}" | tr ':' '-')" >> $GITHUB_OUTPUT
-
+      # oras attach ghcr.io/your-org/your-repo/your-image:your-tag ./my-config.yaml
       - name: Publish CycloneDX SBOM as OCI Artifact
         id: oras_push_cyclonedx
         run: |
@@ -96,7 +96,7 @@ jobs:
           echo "Publishing CycloneDX SBOM to ghcr.io/${{ inputs.image_name_no_tag }}:$OCI_ARTIFACT_TAG"
           oras push "ghcr.io/${{ inputs.image_name_no_tag }}:$OCI_ARTIFACT_TAG" \
             "./downloaded-artifacts/${{ inputs.sbom_cyclonedx_path }}:application/vnd.cyclonedx+json"
-
+  
       - name: Publish SPDX SBOM as OCI Artifact
         id: oras_push_spdx
         run: |
