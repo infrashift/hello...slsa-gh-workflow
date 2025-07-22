@@ -1,1 +1,1 @@
-FROM hello-world
+FROM ubi9:latest
