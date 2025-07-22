@@ -32,7 +32,7 @@ jobs:
           tags: pr-scan-image:latest
 
       - name: 'Install Anchore Grype'
-        uses: anchore/scan-action/download-grype@v3.1.1
+        uses: anchore/scan-action/download-grype@v3
 
       - name: 'Run CVE Scan with Grype'
         run: |
