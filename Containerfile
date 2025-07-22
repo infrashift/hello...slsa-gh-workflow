@@ -1,1 +1,3 @@
-FROM hello-world
+FROM hello-world:latest
+
+ENV someVar=1
