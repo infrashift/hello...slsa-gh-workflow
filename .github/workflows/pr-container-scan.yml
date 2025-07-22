@@ -1,0 +1,46 @@
+name: 'PR Scan: Build and Scan for CVEs'
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize] # Runs on PR creation and when new commits are pushed
+
+permissions:
+  contents: read # To check out the PR code
+  pull-requests: write # To post a comment (optional but recommended)
+
+jobs:
+  scan-and-report:
+    name: 'Scan for CVEs'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout PR Code'
+        uses: actions/checkout@v4
+
+      - name: 'Set up Docker Buildx'
+        uses: docker/setup-buildx-action@v3
+
+      - name: 'Build Container Image Locally'
+        id: docker_build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Containerfile # Or Dockerfile
+          # Build locally and load into Docker for scanning, don't push
+          load: true
+          # We need a tag for Grype to find the image
+          tags: pr-scan-image:latest
+
+      - name: 'Install Anchore Grype'
+        uses: anchore/scan-action/download-grype@v3.1.1
+
+      - name: 'Run CVE Scan with Grype'
+        run: |
+          grype pr-scan-image:latest -o json > cve-report.json
+        # continue-on-error: true # Use if you want the check to pass even with vulns
+
+      - name: 'Upload CVE Report as Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cve-report
+          path: cve-report.json
