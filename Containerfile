@@ -1,1 +1,1 @@
-FROM redhat/ubi9:latest
+FROM hello-world
