@@ -4,8 +4,8 @@ FROM alpine:latest
 # Good practice: Create a non-root user and group
 RUN addgroup -S nonroot && adduser -S nonroot -G nonroot
 
-# Switch to the non-root user. This is what testinfra will check.
+# Switch to the non-root user.
 USER nonroot
 
-# Define the default command
-CMD ["echo", "Hello from a secure, non-root Alpine container!"]
+# Use a long-running command to keep the container alive for testing.
+CMD ["tail", "-f", "/dev/null"]
