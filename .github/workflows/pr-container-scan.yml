@@ -46,17 +46,15 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: 'Install Testinfra'
+      - name: 'Install Dependencies'
         run: |
-          # Pin both pytest and testinfra to specific, known-stable versions
-          # to prevent OS auto-detection bugs in the CI environment.
-          pip install pytest==8.4.1 testinfra
-          
-      - name: 'Run Testinfra against the container'
-        continue-on-error: true # This allows the job to continue on failure
+          # Install pytest and the Docker library. testinfra is no longer needed.
+          pip install pytest docker
+
+      - name: 'Run Pytest against the container'
         run: |
-          # Update the path to point to the new test file.
-          pytest --hosts=docker://pr-scan-image:latest tests/test_container.py
+          # The test file now handles the container connection internally.
+          pytest tests/test_container.py
 
       - name: 'Install Anchore Grype'
         uses: anchore/scan-action/download-grype@v3
