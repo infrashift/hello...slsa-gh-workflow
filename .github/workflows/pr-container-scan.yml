@@ -38,26 +38,33 @@ jobs:
           chmod +x ./opa
 
       - name: 'Evaluate CVE report against OPA policy'
-        id: opa_eval
         run: |
-          # The 'opa eval' command returns a JSON result.
-          # We use '|| true' because it exits with 1 if the result is undefined (no violations), which we want to treat as a pass here.
-          RESULT=$(./opa eval \
-            --data .github/policies/pr-reject.rego \
+          # The '--fail' flag tells OPA to exit with a non-zero status code (1)
+          # if the query result is true. This directly signals a policy violation.
+          echo "Evaluating policy: deny if High or Critical CVEs exist..."
+          if ! ./opa eval \
+            --fail \
+            --data .github/policies/deny.rego \
             --input cve-report.json \
-            "data.grype.authz.deny" \
-            || true)
+            "data.grype.authz.deny"; then
+            # This 'if' block only runs if the 'opa eval' command fails,
+            # which means violations WERE found.
+            echo "❌ OPA Policy Check Failed! Found High or Critical CVEs."
 
-          # Check if the result is 'true', meaning violations were found.
-          if [ "$(echo "$RESULT" | jq '.result[0].expressions[0].value')" == "true" ]; then
-            echo "OPA Policy Check Failed! Found High or Critical CVEs."
-            # Get the detailed violation messages from OPA.
+            # For better logging, run a second evaluation to get the specific violation messages.
             VIOLATIONS=$(./opa eval \
-              --data .github/policies/pr-reject.rego \
+              --data .github/policies/deny.rego \
               --input cve-report.json \
               "data.grype.authz.violations")
-            echo "Violations: $(echo "$VIOLATIONS" | jq '.result[0].expressions[0].value')"
-            exit 1 # Fail the workflow
+            
+            # Pretty-print the violations from the JSON output.
+            echo "Found violations:"
+            echo "$VIOLATIONS" | jq '.result[0].expressions[0].value[]'
+
+            # Explicitly fail the workflow step.
+            exit 1
           else
-            echo "OPA Policy Check Passed. No High or Critical CVEs found."
+            # This 'else' block runs if the 'opa eval --fail' command succeeds,
+            # meaning no violations were found.
+            echo "✅ OPA Policy Check Passed. No High or Critical CVEs found."
           fi
