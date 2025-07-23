@@ -1,5 +1,8 @@
 package grype.authz
 
+# Add this import statement for modern OPA versions.
+import future.keywords.in
+
 # By default, the decision is to allow (an empty 'deny' set).
 default deny = false
 
