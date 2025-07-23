@@ -26,13 +26,27 @@ jobs:
           tags: pr-scan-image:latest
           file: ./Containerfile
 
+      - name: 'Check for Root User at Runtime'
+        run: |
+          echo "Verifying container runs as non-root user..."
+          # Execute 'id -u' inside the container to get the user ID.
+          USER_ID=$(docker run --rm pr-scan-image:latest id -u)
+          
+          echo "Container UID is: $USER_ID"
+          if [ "$USER_ID" = "0" ]; then
+            echo "❌ Policy Check Failed: Container must not run as root (UID 0)."
+            exit 1
+          else
+            echo "✅ Policy Check Passed: Container runs as a non-root user."
+          fi
+
       - name: 'Install Anchore Grype'
         uses: anchore/scan-action/download-grype@v3
 
       - name: 'Run CVE Scan with Grype'
         run: grype pr-scan-image:latest -o json > cve-report.json
 
-      - name: 'Upload CVE Report as Artifact' # 👈 New Step
+      - name: 'Upload CVE Report as Artifact'
         uses: actions/upload-artifact@v4
         with:
           name: cve-report
