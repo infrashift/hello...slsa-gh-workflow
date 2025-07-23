@@ -41,6 +41,20 @@ jobs:
             echo "✅ Policy Check Passed: Container runs as a non-root user."
           fi
 
+      - name: 'Set up Python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: 'Install Testinfra'
+        run: pip install pytest testinfra
+
+      - name: 'Run Testinfra against the container'
+        continue-on-error: true # This allows the job to continue on failure
+        run: |
+          # Update the path to point to the new test file.
+          pytest --hosts=docker://pr-scan-image:latest tests/test_container.py
+
       - name: 'Install Anchore Grype'
         uses: anchore/scan-action/download-grype@v3
 
