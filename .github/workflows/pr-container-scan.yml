@@ -46,19 +46,25 @@ jobs:
       - name: 'Evaluate CVE report against OPA policy'
         run: |
           echo "Evaluating policy: deny if High or Critical CVEs exist..."
-          if ! ./opa eval \
-            --fail \
+
+          # First, ask OPA for the set of violation messages.
+          VIOLATIONS_RESULT=$(./opa eval \
             --data .github/policies/deny.rego \
             --input cve-report.json \
-            "data.grype.authz.deny"; then
+            "data.grype.authz.violations")
+          
+          # Next, use jq to extract just the array of violation messages from OPA's JSON output.
+          VIOLATIONS_ARRAY=$(echo "$VIOLATIONS_RESULT" | jq '.result[0].expressions[0].value')
+
+          # Now, check if the length of the violation array is greater than zero.
+          if [ "$(echo "$VIOLATIONS_ARRAY" | jq 'length')" -gt 0 ]; then
+            # This block runs if the violations array is NOT empty.
             echo "❌ OPA Policy Check Failed! Found High or Critical CVEs."
-            VIOLATIONS=$(./opa eval \
-              --data .github/policies/deny.rego \
-              --input cve-report.json \
-              "data.grype.authz.violations")
             echo "Found violations:"
-            echo "$VIOLATIONS" | jq '.result[0].expressions[0].value[]'
+            # Pretty-print each violation from the array.
+            echo "$VIOLATIONS_ARRAY" | jq --raw-output '.[]'
             exit 1
           else
+            # This block runs if the violations array is empty.
             echo "✅ OPA Policy Check Passed. No High or Critical CVEs found."
           fi
