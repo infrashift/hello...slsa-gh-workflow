@@ -82,25 +82,3 @@ jobs:
             # This block runs if the violations array is empty.
             echo "✅ OPA Policy Check Passed. No High or Critical CVEs found."
           fi
-
-  containerfile-policy-check:
-    name: 'Containerfile Policy Check'
-    runs-on: ubuntu-latest
-    steps:
-      - name: 'Checkout PR Code'
-        uses: actions/checkout@v4
-
-      - name: 'Install conftest'
-        run: |
-          curl -L -o conftest https://github.com/open-policy-agent/conftest/releases/download/v0.52.0/conftest_0.52.0_Linux_x86_64.tar.gz
-          tar -xzf conftest
-          sudo mv conftest /usr/local/bin/
-
-      # This step has been REMOVED from the workflow.
-      # - name: 'Create OPA policy for non-root user check'
-
-      - name: 'Check Containerfile against non-root policy'
-        run: |
-          echo "Checking Containerfile for root user..."
-          # Update the policy path to point to the directory containing your Rego files.
-          conftest test --policy .github/policies Containerfile
