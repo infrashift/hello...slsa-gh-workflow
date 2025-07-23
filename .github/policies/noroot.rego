@@ -17,7 +17,8 @@ deny[msg] {
     last_user_cmd := user_cmds[count(user_cmds) - 1]
     user := lower(last_user_cmd.value[0])
     
-    # Check if the user is root or uid 0.
-    user == "root" or user == "0"
+    # Correct Way: Check if 'user' is a member of the set {"root", "0"}.
+    {"root", "0"}[user]
+    
     msg = sprintf("Containerfile's final USER instruction cannot be '%s'. Specify a non-root user.", [last_user_cmd.value[0]])
 }
