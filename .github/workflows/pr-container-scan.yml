@@ -27,10 +27,16 @@ jobs:
           file: ./Containerfile
 
       - name: 'Install Anchore Grype'
-        uses: anchore/scan-action/download-grype@v3
+        uses: anchore/scan-action/download-grype@v3.1.1
 
       - name: 'Run CVE Scan with Grype'
         run: grype pr-scan-image:latest -o json > cve-report.json
+
+      - name: 'Upload CVE Report as Artifact' # 👈 New Step
+        uses: actions/upload-artifact@v4
+        with:
+          name: cve-report
+          path: cve-report.json
 
       - name: 'Install OPA'
         run: |
@@ -39,32 +45,20 @@ jobs:
 
       - name: 'Evaluate CVE report against OPA policy'
         run: |
-          # The '--fail' flag tells OPA to exit with a non-zero status code (1)
-          # if the query result is true. This directly signals a policy violation.
           echo "Evaluating policy: deny if High or Critical CVEs exist..."
           if ! ./opa eval \
             --fail \
             --data .github/policies/deny.rego \
             --input cve-report.json \
             "data.grype.authz.deny"; then
-            # This 'if' block only runs if the 'opa eval' command fails,
-            # which means violations WERE found.
             echo "❌ OPA Policy Check Failed! Found High or Critical CVEs."
-
-            # For better logging, run a second evaluation to get the specific violation messages.
             VIOLATIONS=$(./opa eval \
               --data .github/policies/deny.rego \
               --input cve-report.json \
               "data.grype.authz.violations")
-            
-            # Pretty-print the violations from the JSON output.
             echo "Found violations:"
             echo "$VIOLATIONS" | jq '.result[0].expressions[0].value[]'
-
-            # Explicitly fail the workflow step.
             exit 1
           else
-            # This 'else' block runs if the 'opa eval --fail' command succeeds,
-            # meaning no violations were found.
             echo "✅ OPA Policy Check Passed. No High or Critical CVEs found."
           fi
