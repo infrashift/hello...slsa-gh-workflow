@@ -27,7 +27,7 @@ jobs:
           file: ./Containerfile
 
       - name: 'Install Anchore Grype'
-        uses: anchore/scan-action/download-grype@v3.1.1
+        uses: anchore/scan-action/download-grype@v3
 
       - name: 'Run CVE Scan with Grype'
         run: grype pr-scan-image:latest -o json > cve-report.json
