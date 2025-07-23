@@ -50,7 +50,7 @@ jobs:
         run: |
           # Pin both pytest and testinfra to specific, known-stable versions
           # to prevent OS auto-detection bugs in the CI environment.
-          pip install pytest==8.4.1 testinfra==10.1.0
+          pip install pytest==8.4.1 testinfra
           
       - name: 'Run Testinfra against the container'
         continue-on-error: true # This allows the job to continue on failure
