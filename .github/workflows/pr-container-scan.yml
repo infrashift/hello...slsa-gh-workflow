@@ -47,8 +47,10 @@ jobs:
           python-version: '3.x'
 
       - name: 'Install Testinfra'
-        run: pip install pytest testinfra
-
+        run: |
+          # Pin pytest to a version older than 7.x to fix the compatibility issue.
+          pip install "pytest<7" testinfra
+          
       - name: 'Run Testinfra against the container'
         continue-on-error: true # This allows the job to continue on failure
         run: |
