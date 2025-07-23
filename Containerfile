@@ -7,5 +7,8 @@ RUN addgroup -S nonroot && adduser -S nonroot -G nonroot
 # Switch to the non-root user.
 USER nonroot
 
+# Switch back to root user.
+USER root
+
 # Use a long-running command to keep the container alive for testing.
 CMD ["tail", "-f", "/dev/null"]
