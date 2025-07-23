@@ -1,17 +1,16 @@
-name: 'PR Scan: Build and Scan for CVEs'
+name: 'PR Scan: CVE Policy Check'
 
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize] # Runs on PR creation and when new commits are pushed
+    types: [opened, synchronize]
 
 permissions:
-  contents: read # To check out the PR code
-  pull-requests: write # To post a comment (optional but recommended)
+  contents: read
 
 jobs:
-  scan-and-report:
-    name: 'Scan for CVEs'
+  opa-policy-check:
+    name: 'OPA CVE Policy Check'
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout PR Code'
@@ -21,26 +20,44 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: 'Build Container Image Locally'
-        id: docker_build
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Containerfile # Or Dockerfile
-          # Build locally and load into Docker for scanning, don't push
           load: true
-          # We need a tag for Grype to find the image
           tags: pr-scan-image:latest
+          file: ./Containerfile
 
       - name: 'Install Anchore Grype'
         uses: anchore/scan-action/download-grype@v3
 
       - name: 'Run CVE Scan with Grype'
-        run: |
-          grype pr-scan-image:latest -o json > cve-report.json
-        # continue-on-error: true # Use if you want the check to pass even with vulns
+        run: grype pr-scan-image:latest -o json > cve-report.json
 
-      - name: 'Upload CVE Report as Artifact'
-        uses: actions/upload-artifact@v4
-        with:
-          name: cve-report
-          path: cve-report.json
+      - name: 'Install OPA'
+        run: |
+          curl -L -o opa https://openpolicyagent.org/downloads/v0.66.0/opa_linux_amd64_static
+          chmod +x ./opa
+
+      - name: 'Evaluate CVE report against OPA policy'
+        id: opa_eval
+        run: |
+          # The 'opa eval' command returns a JSON result.
+          # We use '|| true' because it exits with 1 if the result is undefined (no violations), which we want to treat as a pass here.
+          RESULT=$(./opa eval \
+            --data .github/policies/pr-reject.rego \
+            --input cve-report.json \
+            "data.grype.authz.deny" \
+            || true)
+
+          # Check if the result is 'true', meaning violations were found.
+          if [ "$(echo "$RESULT" | jq '.result[0].expressions[0].value')" == "true" ]; then
+            echo "OPA Policy Check Failed! Found High or Critical CVEs."
+            # Get the detailed violation messages from OPA.
+            VIOLATIONS=$(./opa eval \
+              --data .github/policies/pr-reject.rego \
+              --input cve-report.json \
+              "data.grype.authz.violations")
+            echo "Violations: $(echo "$VIOLATIONS" | jq '.result[0].expressions[0].value')"
+            exit 1 # Fail the workflow
+          else
+            echo "OPA Policy Check Passed. No High or Critical CVEs found."
+          fi
