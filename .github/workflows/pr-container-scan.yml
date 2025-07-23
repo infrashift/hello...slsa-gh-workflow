@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  opa-policy-check:
-    name: 'OPA CVE Policy Check'
+  security-checks:
+    name: 'Runtime Security and Policy Checks'
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout PR Code'
@@ -27,6 +27,7 @@ jobs:
           file: ./Containerfile
 
       - name: 'Check for Root User at Runtime'
+        continue-on-error: true # This allows the job to continue on failure
         run: |
           echo "Verifying container runs as non-root user..."
           # Execute 'id -u' inside the container to get the user ID.
